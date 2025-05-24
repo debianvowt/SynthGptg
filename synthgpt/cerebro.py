@@ -1,74 +1,77 @@
 import nltk
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem import WordNetLemmatizer
-from googlesearch import search
 import requests
 from bs4 import BeautifulSoup
+from googlesearch import search
 
+# Downloads obrigatórios
 nltk.download('punkt')
 nltk.download('wordnet')
 
 lemmatizer = WordNetLemmatizer()
 
+# Lematização básica
 def lematizar(frase):
     tokens = word_tokenize(frase.lower())
     return [lemmatizer.lemmatize(token) for token in tokens]
 
+# Detecção de categoria simples com base em palavras-chave
+CATEGORIAS = {
+    'wikipedia': ['quem', 'o que', 'onde', 'quando', 'história', 'origem'],
+    'google': ['como', 'por que', 'explica', 'funciona', 'exemplo', 'tutorial']
+}
+
 def detectar_categoria(pergunta):
     lem_tokens = lematizar(pergunta)
-    if 'traduza' in lem_tokens or 'traduzir' in lem_tokens:
-        return 'traducao'
-    elif 'quem' in lem_tokens or 'o que' in pergunta:
-        return 'definicao'
-    else:
-        return 'geral'
+    for categoria, palavras in CATEGORIAS.items():
+        for palavra in palavras:
+            if palavra in lem_tokens:
+                return categoria
+    return 'local'
 
-def extrair_texto_url(url):
+# Busca no Google e resumo dos sites
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/113.0"
+}
+
+def buscar_google(query):
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        resposta = requests.get(url, headers=headers, timeout=5)
-        soup = BeautifulSoup(resposta.text, 'html.parser')
-        textos = soup.stripped_strings
-        conteudo = ' '.join(textos)
-        return conteudo[:1500]  # pega os primeiros 1500 caracteres
+        for url in search(query, num_results=1):
+            html = requests.get(url, headers=headers, timeout=10).text
+            soup = BeautifulSoup(html, 'html.parser')
+            texto = ' '.join([p.get_text() for p in soup.find_all(['p', 'li'])])
+            resumo = resumir_conteudo(texto)
+            return f"\n🔎 Resposta da web:\n📄 {resumo}\n🔗 Fonte: {url}"
     except Exception as e:
-        return f"Erro ao acessar conteúdo: {e}"
-
-def responder_local(pergunta):
-    categoria = detectar_categoria(pergunta)
-    if categoria == 'traducao':
-        return "Tradução automática não está habilitada ainda."
-    elif categoria == 'definicao':
-        return "Aqui vai uma definição simples, baseada na minha memória local."
-    else:
-        return "Não entendi exatamente, pode reformular?"
-
-def buscar_na_web(pergunta):
-    try:
-        resultados = list(search(pergunta, num_results=1))
-        if not resultados:
-            return "Nenhum resultado encontrado."
-
-        url = resultados[0]
-        conteudo = extrair_texto_url(url)
-        resumo = resumir_conteudo(conteudo)
-
-        return f"📄 **Resumo do site:** {resumo}\n\n🔗 **Fonte:** {url}"
-    except Exception as e:
-        return f"Erro na busca: {e}"
+        return f"Erro na busca: {str(e)}"
 
 def resumir_conteudo(texto):
-    frases = nltk.sent_tokenize(texto)
-    return ' '.join(frases[:5])  # retorna as 5 primeiras frases
+    frases = sent_tokenize(texto)
+    return ' '.join(frases[:5])
 
-def responder_pergunta(pergunta, usar_busca_web=True):
-    if usar_busca_web:
-        return buscar_na_web(pergunta)
-    else:
-        return responder_local(pergunta)
+# Respostas locais simples
+def responder_local(pergunta):
+    pergunta = pergunta.lower()
+    if "seu nome" in pergunta:
+        return "Eu sou o SynthGPT, seu assistente virtual."
+    if "criador" in pergunta:
+        return "Fui criado por Erick, o desenvolvedor visionário por trás da Devask."
+    return "Ainda não sei responder isso com meu conhecimento local. Tente ativar a busca online."
+
+# Função principal
+memoria = []
 
 def get_memoria():
-    return {
-        "versao": "1.0",
-        "fontes": ["local", "google"]
-    }
+    return memoria
+
+def responder_pergunta(pergunta, usar_web=True):
+    categoria = detectar_categoria(pergunta)
+    memoria.append({"pergunta": pergunta})
+
+    if categoria == 'wikipedia' and usar_web:
+        return buscar_google(f"site:pt.wikipedia.org {pergunta}")
+    elif categoria == 'google' and usar_web:
+        return buscar_google(pergunta)
+    else:
+        return responder_local(pergunta)
