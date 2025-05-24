@@ -2,5 +2,6 @@ flask
 flask-cors
 nltk
 googlesearch-python
+wikipedia
 requests
 beautifulsoup4
