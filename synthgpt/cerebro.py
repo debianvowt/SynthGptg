@@ -1,9 +1,10 @@
 import nltk
 
-try:
-    nltk.data.find("tokenizers/punkt")
-except LookupError:
-    nltk.download("punkt")
+for resource in ["punkt", "wordnet", "omw-1.4"]:
+    try:
+        nltk.data.find(resource if resource == "punkt" else f"corpora/{resource}")
+    except LookupError:
+        nltk.download(resource)
 
 import random
 import wikipedia
