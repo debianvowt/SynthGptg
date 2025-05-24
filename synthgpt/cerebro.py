@@ -1,3 +1,17 @@
+import nltk
+
+# Garantir que o WordNet esteja disponível
+try:
+    nltk.data.find('corpora/wordnet')
+except LookupError:
+    nltk.download('wordnet')
+
+# Suporte adicional a lematização
+try:
+    nltk.data.find('corpora/omw-1.4')
+except LookupError:
+    nltk.download('omw-1.4')
+
 import re
 import requests
 from bs4 import BeautifulSoup
