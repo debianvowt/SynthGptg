@@ -1,3 +1,10 @@
+import nltk
+
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt")
+
 import random
 import wikipedia
 from googlesearch import search
