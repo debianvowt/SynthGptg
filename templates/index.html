@@ -40,6 +40,7 @@
 
     <!-- Input -->
     <form id="form" class="w-full max-w-3xl p-4 flex flex-col items-stretch">
+      <!-- Campo de texto + botão -->
       <div class="flex items-center space-x-2">
         <input type="text" id="entrada" placeholder="Digite sua pergunta..." class="flex-grow p-3 rounded-full border dark:bg-gray-800 dark:border-gray-600" required />
         <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full">
@@ -48,19 +49,34 @@
           </svg>
         </button>
       </div>
-      <p class="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">O SynthGPT pode cometer erros. Considere verificar informações importantes.</p>
-      <div class="mt-3 flex items-center space-x-2">
-        <input type="checkbox" id="usar_busca" class="w-4 h-4 text-blue-600 border-gray-300 rounded" />
-        <label for="usar_busca" class="text-sm">Ativar busca web (Google/Wikipedia)</label>
+
+      <!-- Aviso -->
+      <p class="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+        O SynthGPT pode cometer erros. Considere verificar informações importantes.
+      </p>
+
+      <!-- Opções -->
+      <div class="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+        <label class="inline-flex items-center">
+          <input type="checkbox" id="usar_busca" class="form-checkbox h-4 w-4 text-blue-600 rounded" />
+          <span class="ml-2">Ativar busca web (Google/Wikipedia)</span>
+        </label>
+
+        <label class="inline-flex items-center">
+          <input type="checkbox" id="modo_codigo" class="form-checkbox h-4 w-4 text-green-600 rounded" />
+          <span class="ml-2">Modo Código (IA de programação)</span>
+        </label>
       </div>
     </form>
   </div>
 
+  <!-- Script -->
   <script>
     const chat = document.getElementById("chat");
     const form = document.getElementById("form");
     const entrada = document.getElementById("entrada");
     const usarBusca = document.getElementById("usar_busca");
+    const modoCodigo = document.getElementById("modo_codigo");
     const toggleTheme = document.getElementById("toggleTheme");
 
     toggleTheme.addEventListener("click", () => {
@@ -69,8 +85,8 @@
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const pergunta = entrada.value;
-      if (!pergunta.trim()) return;
+      const pergunta = entrada.value.trim();
+      if (!pergunta) return;
 
       const perguntaBox = document.createElement("div");
       perguntaBox.className = "bg-blue-100 dark:bg-gray-700 p-3 rounded-xl self-end";
@@ -83,12 +99,17 @@
         const res = await fetch("/perguntar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entrada: pergunta, usar_busca_web: usarBusca.checked })
+          body: JSON.stringify({
+            entrada: pergunta,
+            usar_busca_web: usarBusca.checked,
+            modo_codigo: modoCodigo.checked // FUTURO: enviar para backend
+          })
         });
+
         const data = await res.json();
 
         const respostaBox = document.createElement("div");
-        respostaBox.className = "bg-gray-200 dark:bg-gray-600 p-3 rounded-xl self-start";
+        respostaBox.className = "bg-gray-200 dark:bg-gray-600 p-3 rounded-xl self-start whitespace-pre-wrap";
         respostaBox.textContent = `SynthGPT: ${data.resposta}`;
         chat.appendChild(respostaBox);
 
