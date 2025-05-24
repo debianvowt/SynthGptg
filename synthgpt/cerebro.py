@@ -1,93 +1,67 @@
 import nltk
-
-for resource in ["punkt", "wordnet", "omw-1.4"]:
-    try:
-        nltk.data.find(resource if resource == "punkt" else f"corpora/{resource}")
-    except LookupError:
-        nltk.download(resource)
-
-import random
-import wikipedia
-from googlesearch import search
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 
-wikipedia.set_lang("pt")
+from googlesearch import search
+import requests
+from bs4 import BeautifulSoup
 
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+stop_words = set(stopwords.words('portuguese'))
 lemmatizer = WordNetLemmatizer()
-
-# Memória simples de contexto (pode ser expandida)
-memoria_contexto = []
-
-respostas_base = {
-    "oi": ["Olá!", "Oi, como posso ajudar?", "E aí!"],
-    "tudo bem": ["Estou bem, obrigado!", "Tudo ótimo por aqui! E você?"],
-    "quem é você": ["Eu sou o SynthGPT, seu assistente inteligente."],
-    "obrigado": ["De nada!", "Por nada, sempre à disposição!"],
-    "default": ["Não entendi muito bem, pode reformular?", "Não sei a resposta, mas vou tentar buscar na web."]
-}
-
-palavras_chave = {
-    "saudacao": ["oi", "olá", "e aí", "ola"],
-    "agradecimento": ["obrigado", "valeu"],
-    "pergunta_geral": ["quem", "o que", "quando", "onde", "por que", "como"],
-}
 
 def lematizar(frase):
     tokens = word_tokenize(frase.lower())
-    return [lemmatizer.lemmatize(token) for token in tokens]
+    tokens_filtrados = [token for token in tokens if token.isalnum() and token not in stop_words]
+    return [lemmatizer.lemmatize(token) for token in tokens_filtrados]
 
 def detectar_categoria(pergunta):
     lem_tokens = lematizar(pergunta)
-    for categoria, palavras in palavras_chave.items():
-        if any(p in lem_tokens for p in palavras):
-            return categoria
-    return "desconhecido"
+    if any(p in lem_tokens for p in ["quem", "quando", "onde", "qual", "quais"]):
+        return "fato"
+    elif any(p in lem_tokens for p in ["como", "faço", "fazer", "criar", "resolver"]):
+        return "tutorial"
+    elif any(p in lem_tokens for p in ["vale", "melhor", "bom", "ruim", "opinião"]):
+        return "opinião"
+    else:
+        return "geral"
 
 def responder_local(pergunta):
     categoria = detectar_categoria(pergunta)
-    lem = lematizar(pergunta)
-    for chave, respostas in respostas_base.items():
-        if chave in lem:
-            return random.choice(respostas)
-    try:
-        resumo = wikipedia.summary(pergunta, sentences=2)
-        return resumo
-    except:
-        return None
+    if categoria == "fato":
+        return "Pergunta factual detectada. Use a busca web para melhores resultados."
+    elif categoria == "tutorial":
+        return "Talvez eu consiga te ensinar! Pergunta de tutorial detectada."
+    elif categoria == "opinião":
+        return "Essa parece ser uma pergunta de opinião. Aqui vai minha visão!"
+    else:
+        return "Não consegui identificar o tipo da pergunta, mas aqui vai minha tentativa!"
 
-def buscar_google(pergunta):
-    try:
-        resultados = list(search(pergunta, num_results=1))
-        if resultados:
-            return f"Encontrei isso no Google: {resultados[0]}"
-        return "Não encontrei nada relevante no Google."
-    except Exception as e:
-        return f"Erro ao pesquisar no Google: {e}"
+def buscar_no_google_e_resumir(query, num_resultados=1):
+    resultados = search(query, num_results=num_resultados)
+    descricoes = []
+
+    for url in resultados:
+        try:
+            resposta = requests.get(url, timeout=5)
+            soup = BeautifulSoup(resposta.content, 'html.parser')
+            texto = ' '.join([p.get_text() for p in soup.find_all('p')])
+            resumo = texto[:1000]  # Limite para não ultrapassar resposta
+            descricoes.append(f"🔗 **Fonte:** {url}\n📄 **Resumo:**\n{resumo}")
+        except Exception as e:
+            descricoes.append(f"❌ Erro ao acessar {url}: {str(e)}")
+
+    return "\n\n".join(descricoes)
 
 def responder_pergunta(pergunta, usar_busca_web=False):
-    global memoria_contexto
-    memoria_contexto.append({"pergunta": pergunta})
-
-    resposta = responder_local(pergunta)
-    if resposta:
-        memoria_contexto.append({"resposta": resposta})
-        return resposta
-
     if usar_busca_web:
-        resposta_web = buscar_google(pergunta)
-        memoria_contexto.append({"resposta": resposta_web})
-        return resposta_web
-
-    resposta = respostas_base["default"][0]
-    memoria_contexto.append({"resposta": resposta})
-    return resposta
+        return buscar_no_google_e_resumir(pergunta)
+    else:
+        return responder_local(pergunta)
 
 def get_memoria():
-    texto = ""
-    for item in memoria_contexto:
-        if "pergunta" in item:
-            texto += f"Você: {item['pergunta']}\n"
-        elif "resposta" in item:
-            texto += f"SynthGPT: {item['resposta']}\n"
-    return texto
+    return "Função de memória ainda em desenvolvimento."
