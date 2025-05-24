@@ -1,50 +1,87 @@
-﻿<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8" />
-    <title>SynthGPT</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cérebro IA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="chat-container">
-        <h1>SynthGPT</h1>
-        <div class="chat-box" id="chat-box"></div>
+<body class="bg-gray-100 text-gray-800 flex flex-col items-center min-h-screen p-4">
 
-        <form id="chat-form">
-            <input type="text" id="entrada" placeholder="Digite sua pergunta..." required autofocus />
-            <label>
-                <input type="checkbox" id="usar_busca_web" />
-                Usar busca na web
-            </label>
-            <button type="submit">Enviar</button>
-        </form>
+  <div class="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-6 mt-10">
+    <h1 class="text-2xl font-bold mb-6 text-center">🤖 Cérebro IA</h1>
+
+    <div id="chat" class="h-[400px] overflow-y-auto space-y-4 mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50"></div>
+
+    <form id="form" class="flex items-center space-x-2">
+      <input 
+        type="text" 
+        id="entrada" 
+        placeholder="Digite sua pergunta..." 
+        class="flex-grow p-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400" 
+        required
+      />
+      <button 
+        type="submit" 
+        class="bg-blue-500 text-white px-5 py-3 rounded-xl hover:bg-blue-600 transition">
+        Enviar
+      </button>
+    </form>
+
+    <div class="mt-4 flex items-center space-x-2">
+      <input type="checkbox" id="usar_busca" class="w-4 h-4 text-blue-600 border-gray-300 rounded" />
+      <label for="usar_busca" class="text-sm text-gray-600">Ativar busca web (Google/Wikipedia)</label>
     </div>
+  </div>
 
-    <script>
-        const form = document.getElementById("chat-form");
-        const chatBox = document.getElementById("chat-box");
+  <script>
+    const form = document.getElementById('form');
+    const entrada = document.getElementById('entrada');
+    const usarBusca = document.getElementById('usar_busca');
+    const chat = document.getElementById('chat');
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const entrada = document.getElementById("entrada").value;
-            const usarBuscaWeb = document.getElementById("usar_busca_web").checked;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-            // Mostrar pergunta no chat
-            chatBox.innerHTML += `<div><b>Você:</b> ${entrada}</div>`;
+      const pergunta = entrada.value;
+      if (!pergunta.trim()) return;
 
-            // Enviar para backend
-            const response = await fetch("/perguntar", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ entrada, usar_busca_web: usarBuscaWeb }),
-            });
+      // Mostra pergunta no chat
+      const perguntaBox = document.createElement('div');
+      perguntaBox.className = "bg-blue-100 rounded-xl p-3 self-end";
+      perguntaBox.textContent = `Você: ${pergunta}`;
+      chat.appendChild(perguntaBox);
 
-            const data = await response.json();
-            chatBox.innerHTML += `<div><b>SynthGPT:</b> ${data.resposta}</div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
+      // Limpa input
+      entrada.value = "";
 
-            form.reset();
+      // Chama backend
+      try {
+        const res = await fetch("/perguntar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entrada: pergunta,
+            usar_busca_web: usarBusca.checked
+          })
         });
-    </script>
+        const data = await res.json();
+
+        const respostaBox = document.createElement('div');
+        respostaBox.className = "bg-gray-200 rounded-xl p-3 self-start";
+        respostaBox.textContent = `Cérebro: ${data.resposta}`;
+        chat.appendChild(respostaBox);
+
+        chat.scrollTop = chat.scrollHeight;
+
+      } catch (error) {
+        const erroBox = document.createElement('div');
+        erroBox.className = "bg-red-100 text-red-800 rounded-xl p-3";
+        erroBox.textContent = "Erro ao buscar resposta.";
+        chat.appendChild(erroBox);
+      }
+    });
+  </script>
+
 </body>
 </html>
