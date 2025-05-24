@@ -1,0 +1,1 @@
+for execute say in cmd: python C:\Users\Erick\Desktop\synthgpt_project/main.py

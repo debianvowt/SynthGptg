@@ -1,0 +1,50 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>SynthGPT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+    <div class="chat-container">
+        <h1>SynthGPT</h1>
+        <div class="chat-box" id="chat-box"></div>
+
+        <form id="chat-form">
+            <input type="text" id="entrada" placeholder="Digite sua pergunta..." required autofocus />
+            <label>
+                <input type="checkbox" id="usar_busca_web" />
+                Usar busca na web
+            </label>
+            <button type="submit">Enviar</button>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById("chat-form");
+        const chatBox = document.getElementById("chat-box");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const entrada = document.getElementById("entrada").value;
+            const usarBuscaWeb = document.getElementById("usar_busca_web").checked;
+
+            // Mostrar pergunta no chat
+            chatBox.innerHTML += `<div><b>Você:</b> ${entrada}</div>`;
+
+            // Enviar para backend
+            const response = await fetch("/perguntar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ entrada, usar_busca_web: usarBuscaWeb }),
+            });
+
+            const data = await response.json();
+            chatBox.innerHTML += `<div><b>SynthGPT:</b> ${data.resposta}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            form.reset();
+        });
+    </script>
+</body>
+</html>
